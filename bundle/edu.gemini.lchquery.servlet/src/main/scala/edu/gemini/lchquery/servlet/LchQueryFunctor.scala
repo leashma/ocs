@@ -61,7 +61,7 @@ class LchQueryFunctor(queryType: LchQueryFunctor.QueryType,
 
     def makeTargetNode(target: SPTarget, env: TargetEnvironment): Option[Serializable] = {
       def targetType: Option[String] = {
-        if (env.isBasePosition(target)) Some("Base")
+        if (env.getArbitraryTargetFromAsterism eq target) Some("Base")
         else if (env.isUserPosition(target)) Some("User")
         else if (env.isGuidePosition(target)) {
           for {
@@ -145,7 +145,7 @@ class LchQueryFunctor(queryType: LchQueryFunctor.QueryType,
         setSemester(prog.scienceSemester.orNull)
         setTitle(spProg.getTitle)
         setContactScientistEmail(spProg.getContactPerson)
-        setNgoEmail(spProg.getNGOContactEmail)
+        setNgoEmail(spProg.getPrimaryContactEmail)
         setNotifyPi(spProg.getNotifyPi.displayValue)
         setRollover(prog.rolloverStatus.displayValue)
 

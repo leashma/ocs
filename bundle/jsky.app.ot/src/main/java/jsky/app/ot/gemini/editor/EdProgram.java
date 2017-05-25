@@ -31,6 +31,7 @@ import java.util.logging.Logger;
 
 /**
  * This is the editor for the Science Program component.
+ * NOTE: component names / labels are no longer congruent with data object member names because of REL-2942.
  */
 public final class EdProgram extends OtItemEditor<ISPProgram, SPProgram> implements TextBoxWidgetWatcher {
     private static final Logger LOGGER = Logger.getLogger(EdProgram.class.getName());
@@ -51,14 +52,14 @@ public final class EdProgram extends OtItemEditor<ISPProgram, SPProgram> impleme
         _w = new ProgramForm();
         _edAux = new AuxFileEditor(_w);
 
-        _w.contactBox.setForeground(Color.black);
+        _w.additionalSupportBox.setForeground(Color.black);
 
-        _w.titleBox.     addWatcher(this);
-        _w.firstNameBox. addWatcher(this);
-        _w.lastNameBox.  addWatcher(this);
-        _w.emailBox.     addWatcher(this);
-        _w.phoneBox.     addWatcher(this);
-        _w.ngoContactBox.addWatcher(this);
+        _w.titleBox.           addWatcher(this);
+        _w.firstNameBox.       addWatcher(this);
+        _w.lastNameBox.        addWatcher(this);
+        _w.emailBox.           addWatcher(this);
+        _w.phoneBox.           addWatcher(this);
+        _w.principalSupportBox.addWatcher(this);
 
         // add menu choices
         _w.affiliationBox.setForeground(Color.black);
@@ -83,7 +84,7 @@ public final class EdProgram extends OtItemEditor<ISPProgram, SPProgram> impleme
         _w.minimumTime.setForeground(Color.black);
         _w.allocatedTime.setForeground(Color.black);
         _w.partnerTime.setForeground(Color.black);
-        _w.timeRemaining.setForeground(Color.black);
+        _w.remainingTime.setForeground(Color.black);
         _w.programTime.setForeground(Color.black);
         _w.progRefBox.setForeground(Color.black);
         _w.tooStatusLabel.setForeground(Color.black);
@@ -122,8 +123,8 @@ public final class EdProgram extends OtItemEditor<ISPProgram, SPProgram> impleme
         _showPiInfo();
 
         // misc
-        _w.contactBox.setText(getDataObject().getContactPerson());
-        _w.ngoContactBox.setText(getDataObject().getNGOContactEmail());
+        _w.additionalSupportBox.setText(getDataObject().getContactPerson());
+        _w.principalSupportBox.setText(getDataObject().getPrimaryContactEmail());
 
         final TooType tooType = getDataObject().getTooType();
         final String typeStr = tooType.getDisplayValue();
@@ -262,7 +263,7 @@ public final class EdProgram extends OtItemEditor<ISPProgram, SPProgram> impleme
 
         // Allocated time (awarded time in hours).
         try {
-            final double awardedTime = getDataObject().getAwardedTime().getTimeAmount();
+            final double awardedTime = getDataObject().getAwardedProgramTime().getTimeAmount();
             setTimeLabel(awardedTime, _w.allocatedTime);
         } catch (final Exception e) {
             DialogUtil.error(e);
@@ -282,14 +283,14 @@ public final class EdProgram extends OtItemEditor<ISPProgram, SPProgram> impleme
             final ObsTimeCharges otc = ObsTimesService.getCorrectedObsTimes(prog).getTimeCharges();
             setTimeLabel(otc.getTime(ChargeClass.PARTNER), _w.partnerTime);
             setTimeLabel(otc.getTime(ChargeClass.PROGRAM), _w.programTime);
-            setTimeLabel(ObsTimesService.getRemainingProgramTime(prog), _w.timeRemaining);
+            setTimeLabel(ObsTimesService.getRemainingProgramTime(prog), _w.remainingTime);
 
         } catch (final Exception e) {
             // This can fail, for example, if the program is null.
             DialogUtil.error(e);
             setTimeLabel(0, _w.partnerTime);
             setTimeLabel(0, _w.programTime);
-            setTimeLabel(0, _w.timeRemaining);
+            setTimeLabel(0, _w.remainingTime);
         }
     }
 
@@ -306,8 +307,10 @@ public final class EdProgram extends OtItemEditor<ISPProgram, SPProgram> impleme
         _w.emailBox.setEnabled(OTOptions.isStaff(getProgram().getProgramID()));
         _w.phoneBox.setEnabled(enabled);
         _w.affiliationBox.setEnabled(enabled);
-        _w.contactBox.setEnabled(OTOptions.isStaff(getProgram().getProgramID()));
-        _w.ngoContactBox.setEnabled(OTOptions.isStaff(getProgram().getProgramID()) || OTOptions.isNGO(getProgram().getProgramID()));
+        _w.additionalSupportBox.setEnabled(OTOptions.isStaff(getProgram().getProgramID()));
+
+        // This confusion is due to the fact that this widget used to be for NGO support, and has now been relabeled.
+        _w.principalSupportBox.setEnabled(OTOptions.isStaff(getProgram().getProgramID()) || OTOptions.isNGO(getProgram().getProgramID()));
     }
 
     /**
@@ -337,8 +340,8 @@ public final class EdProgram extends OtItemEditor<ISPProgram, SPProgram> impleme
             final SPProgram.PIInfo piInfo = getDataObject().getPIInfo();
             getDataObject().setPIInfo(new SPProgram.PIInfo(piInfo.getFirstName(),
                     piInfo.getLastName(), piInfo.getEmail(), s, piInfo.getAffiliate()));
-        } else if (tbwe == _w.ngoContactBox) {
-            getDataObject().setNGOContactEmail(s);
+        } else if (tbwe == _w.principalSupportBox) {
+            getDataObject().setPrimaryContactEmail(s);
         }
     }
 }

@@ -1,5 +1,6 @@
 package edu.gemini.phase2.skeleton.factory
 
+import edu.gemini.spModel.core.Affiliate
 import edu.gemini.spModel.gemini.obscomp.SPProgram.ProgramMode._
 import edu.gemini.spModel.too.TooType
 import edu.gemini.model.p1.immutable._
@@ -12,18 +13,21 @@ import edu.gemini.spModel.gemini.obscomp.SPProgram
 import edu.gemini.spModel.gemini.obscomp.SPProgram.{PIInfo, ProgramMode}
 import edu.gemini.shared.util.TimeValue
 
-import edu.gemini.spModel.timeacct.{TimeAcctAllocation, TimeAcctCategory}
+import edu.gemini.spModel.timeacct.{TimeAcctAllocation, TimeAcctAward, TimeAcctCategory}
 import edu.gemini.spModel.gemini.phase1.{GsaPhase1Data => Gsa}
+
+import java.time.Duration
 
 import scala.collection.JavaConverters._
 import scalaz._
 import Scalaz._
-import edu.gemini.spModel.core.Affiliate
 
 /**
  * Factory for creating an SPProgram from a Phase 1 Proposal document.
  */
 object SpProgramFactory {
+
+  private val MsPerHour = Duration.ofHours(1).toMillis
 
   private val NGO_TIME_ACCT = Map(
     AR -> TimeAcctCategory.AR,
@@ -66,7 +70,7 @@ object SpProgramFactory {
     prog.setThesis(isThesis(proposal))
 
     prog.setPIInfo(piInfo(proposal))
-    hostNgoEmail(proposal) foreach { e => prog.setNGOContactEmail(e) }
+    hostNgoEmail(proposal) foreach { e => prog.setPrimaryContactEmail(e) }
 
     // Note: not a typo -- "contact person" is an email
     gemEmail(proposal) foreach { e => prog.setContactPerson(e) }
@@ -194,16 +198,28 @@ object SpProgramFactory {
 
   def timeAcctAllocation(proposal: Proposal): Option[TimeAcctAllocation] =
     awardedHours(proposal).filter(_ > 0.0) flatMap { hrs =>
+      val progTime = hoursFromObservations(proposal, _.progTime)
+      val partTime = hoursFromObservations(proposal, _.partTime)
+
       timeAccountingRatios(proposal) match {
-        case Nil    => None
+        case Nil => None
         case ratios =>
-          val jmap  = ratios.toMap.mapValues(d => new java.lang.Double(d)).asJava
-          Some(new TimeAcctAllocation(hrs, jmap))
+          val jmap = ratios.map { case (cat, rat) =>
+            def durationRatio(v: TimeAmount): Duration =
+              Duration.ofMillis(((v.hours * rat) * MsPerHour).round)
+
+            val award = new TimeAcctAward(durationRatio(progTime), durationRatio(partTime))
+            (cat, award)
+          }.toMap.asJava
+          Some(new TimeAcctAllocation(jmap))
       }
     }
 
   def awardedHours(proposal: Proposal): Option[Double] =
     itacAcceptance(proposal) map { a => a.award.toHours.value }
+
+  private def hoursFromObservations(proposal: Proposal, sf: Observation => Option[TimeAmount]): TimeAmount =
+    proposal.observations.foldLeft(TimeAmount.empty)(_ |+| sf(_).getOrElse(TimeAmount.empty))
 
   def timeAccountingRatios(proposal: Proposal): List[(TimeAcctCategory, Double)] =
     proposal.proposalClass match {
