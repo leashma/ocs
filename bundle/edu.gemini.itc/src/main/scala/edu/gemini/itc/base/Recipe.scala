@@ -53,6 +53,7 @@ object Recipe {
   }
 
   def createS2NChart(result: SpectroscopyResult): SpcChartData = {
+    println("calculationMethod: " + result.parameters.observation.calculationMethod)
     createS2NChart(result, 0)
   }
 
@@ -62,7 +63,6 @@ object Recipe {
 
   def createS2NChart(result: SpectroscopyResult, title: String, index: Int): SpcChartData = {
     val data: JList[SpcSeriesData] = new ArrayList[SpcSeriesData]
-      if exposures <= 1 {
       data.add(SpcSeriesData(SingleS2NData, "Single Exp S/N", result.specS2N(index).getExpS2NSpectrum.getData))
       data.add(SpcSeriesData(FinalS2NData,  "Final S/N  ",    result.specS2N(index).getFinalS2NSpectrum.getData))
     new SpcChartData(S2NChart, title, ChartAxis("Wavelength (nm)"), ChartAxis("Signal / Noise per spectral pixel"), data.toList)
